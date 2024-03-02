@@ -1,0 +1,154 @@
+replicaCount: 1
+image:
+  repository: osixia/openldap
+  tag: 1.5.0
+  pullPolicy: Always
+
+customTLS:
+  enabled: false
+  secret: ""  # The name of a kubernetes.io/tls type secret to use for TLS
+
+extraVolumes:
+# - name: ca-certs
+#   hostPath:
+#     path: /etc/ssl/certs/ca-bundle.crt
+#     type: File
+
+extraVolumeMounts:
+#- name: ca-certs
+#  readOnly: true
+#  mountPath: "/etc/ssl/certs/ca-certificates.crt"
+
+# Use the env variables from https://github.com/osixia/docker-openldap#beginner-guide
+env:
+  LDAP_LOG_LEVEL: "256"
+  LDAP_ORGANISATION: "ODP Inc."
+  LDAP_DOMAIN: "odp.com"
+  LDAP_READONLY_USER: "true"
+  LDAP_READONLY_USER_USERNAME: "readonly"
+  LDAP_READONLY_USER_PASSWORD: "readonly"
+  LDAP_RFC2307BIS_SCHEMA: "false"
+  LDAP_BACKEND: "mdb"
+  LDAP_TLS: "true"
+  LDAP_TLS_CRT_FILENAME: "tls.crt"
+  LDAP_TLS_KEY_FILENAME: "tls.key"
+  LDAP_TLS_DH_PARAM_FILENAME: "dhparam.pem"
+  LDAP_TLS_CA_CRT_FILENAME: "ca.crt"
+  LDAP_TLS_ENFORCE: "false"
+  CONTAINER_LOG_LEVEL: "4"
+  LDAP_TLS_REQCERT: "never"
+  KEEP_EXISTING_CONFIG: "false"
+  LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+  LDAP_SSL_HELPER_PREFIX: "ldap"
+  LDAP_TLS_VERIFY_CLIENT: "never"
+  LDAP_TLS_PROTOCOL_MIN: "3.0"
+  LDAP_TLS_CIPHER_SUITE: "NORMAL"
+
+
+adminPassword: Not@SecurePassw0rd
+configPassword: Not@SecurePassw0rd
+
+  # Custom openldap configuration files used to override default settings
+  # customLdifFiles:
+  # 01-default-users.ldif: |-
+# Predefine users here
+
+customLdifFiles:
+  00-add-content.ldif: |-
+    dn: ou=Users,dc=odp,dc=com
+    objectClass: organizationalUnit
+    ou: Users
+
+    dn: ou=Groups,dc=odp,dc=com
+    objectClass: organizationalUnit
+    ou: Groups
+
+  01-add-content.ldif: |-
+    dn: cn=mlahouar,ou=Users,dc=odp,dc=com
+    cn: mlahouar
+    objectclass: inetOrgPerson
+    objectclass: top
+    sn: mlahouar
+    uid: mlahouar
+    mail: mlahouar@odp.com
+    userpassword: mlahouar123
+
+    dn: cn=salexandre,ou=Users,dc=odp,dc=com
+    cn: salexandre
+    objectclass: inetOrgPerson
+    objectclass: top
+    sn: salexandre
+    uid: salexandre
+    mail: salexandre@odp.com
+    userpassword: salexandre123
+  02-add-content.ldif: |-
+    dn: cn=rw_users,ou=Groups,dc=odp,dc=com
+    cn: rw_users
+    gidnumber: 200116
+    memberuid: mlahouar
+    objectclass: posixGroup
+    objectclass: top
+
+    dn: cn=ro_users,ou=Groups,dc=odp,dc=com
+    cn: ro_users
+    gidnumber: 200115
+    memberuid: salexandre
+    objectclass: posixGroup
+    objectclass: top
+
+# Custom files with provided contents to be added in container.
+customFileSets: []
+#- name: fileset1
+#  targetPath: /container/service/slapd/assets/config/bootstrap/ldif
+#  files:
+#  - filename: 03-memberOf.ldif
+#    content: |
+#      dn: cn=module{0},cn=config
+#      changetype: modify
+#      add: olcModuleLoad
+#      olcModuleLoad: memberof
+
+
+persistence:
+  enabled: true
+  ## database data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "standard-singlewriter"
+  # existingClaim: openldap-pvc
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+
+ltb-passwd:
+  enabled : false
+
+phpldapadmin:
+  enabled: true
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: cluster-issuer1
+      kubernetes.io/ingress.class: nginx
+      kubernetes.io/tls-acme: "true"
+    path: /
+    pathType: Prefix
+    hosts:
+      - phpldapadmin.ingress.kind
+    tls:
+      - hosts:
+          - phpldapadmin.ingress.kind
+        secretName: phpldapadmin-tls
+  env:
+    PHPLDAPADMIN_LDAP_HOSTS: openldap-openldap-stack-ha
