@@ -13,6 +13,7 @@
 * kubectl (tested with 1.29.2)
 * Helm (tested with 3.14.2)
 * (Optional) k9s
+* Taskfile
 
 ___
 

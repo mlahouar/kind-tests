@@ -57,6 +57,7 @@ tasks:
   install-metallb:
     cmds:
       - kubectl apply -f {{.METALLB_MANIFEST}}
+      - sleep 20
       - kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s
       - |
         kubectl apply -f - <<EOF
@@ -175,6 +176,22 @@ tasks:
       - |
         helm uninstall ingress-nginx -n ingress-nginx
         kubectl delete namespace ingress-nginx
+
+  install-minio:
+    cmds:
+      - |
+        kubectl create ns minio
+        helm repo add minio https://charts.min.io/
+        helm install --namespace minio --values minio-values.yaml minio minio/minio
+        
+  uninstall-minio:
+    cmds:
+      - |
+        helm uninstall minio -n minio
+        kubectl delete namespace minio
+        
+        
+
         
     
         
